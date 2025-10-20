@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Compass – PWA Starter</title>
+  <meta name="theme-color" content="#0f172a" />
+
+  <!-- Optional: link a manifest when you deploy as a PWA -->
+  <!-- <link rel="manifest" href="/manifest.webmanifest"> -->
+
+  <style>
+    :root {
+      --bg: #0b1220;
+      --fg: #e5e7eb;
+      --muted: #9aa4b2;
+      --accent: #60a5fa; /* marker highlight */
+      --good: #34d399;   /* distance banner */
+      --card: #111827;
+      --border: #1f2937;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, Helvetica, "Apple Color Emoji", "Segoe UI Emoji";
+      background: radial-gradient(1200px 800px at 50% -10%, #0d1b34, var(--bg));
+      color: var(--fg);
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      grid-template-rows: auto 1fr auto;
+      grid-template-areas:
+        "aside header"
+        "aside main"
+        "aside footer";
+      gap: 16px;
+      padding: 16px;
+    }
+    header { grid-area: header; display: flex; align-items: center; gap: 12px; }
+    header h1 { font-size: 1.25rem; margin: 0; }
+    header .pill { padding: 6px 10px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); font-size: 12px; }
+
+    aside { grid-area: aside; background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 14px; }
+    aside h2 { font-size: 1rem; margin: 0; color: var(--fg); }
+    .section { display: grid; gap: 8px; }
+    label { font-size: 0.85rem; color: var(--muted); }
+    input, button, select { font: inherit; }
+    input[type="text"], input[type="number"] {
+      width: 100%; padding: 10px 12px; border-radius: 10px; color: var(--fg);
+      border: 1px solid var(--border); background: #0b1322;
+    }
+    button {
+      padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border);
+      background: #0e1a30; color: var(--fg); cursor: pointer; transition: 120ms ease;
+    }
+    button:hover { filter: brightness(1.15); }
+    .row { display: flex; gap: 8px; }
+
+    .list { max-height: 40vh; overflow: auto; border: 1px dashed var(--border); border-radius: 12px; padding: 8px; }
+    .item { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; padding: 8px; border-radius: 10px; }
+    .item:hover { background: rgba(255,255,255,0.02); }
+    .item .meta { font-size: 12px; color: var(--muted); }
+
+    main { grid-area: main; display: grid; place-items: center; }
+
+    .compass-wrap { position: relative; width: min(75vmin, 720px); aspect-ratio: 1/1; }
+    .compass { position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--border); background: radial-gradient(60% 60% at 50% 50%, #0f1c36, #0a1324); box-shadow: inset 0 0 60px rgba(0,0,0,0.4); }
+    .ticks { position: absolute; inset: 10px; border-radius: 50%; }
+    .tick { position: absolute; left: 50%; top: 50%; width: 2px; height: calc(50% - 16px); background: #2a3652; transform-origin: bottom center; opacity: 0.6; }
+
+    .north { position: absolute; left: 50%; top: 50%; width: 4px; height: calc(50% - 20px); background: linear-gradient(#ef4444, #7f1d1d); transform-origin: bottom center; border-radius: 2px; box-shadow: 0 0 12px rgba(239,68,68,0.5); }
+    .center-dot { position: absolute; left: 50%; top: 50%; width: 16px; height: 16px; transform: translate(-50%,-50%); border-radius: 50%; background: #e5e7eb; box-shadow: 0 0 30px rgba(255,255,255,0.25); }
+
+    /* Token: 3-letter dot badge */
+    .token {
+        position: absolute;
+        top: 0;             
+        left: 0;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        border: 1px solid rgba(96,165,250,0.45);
+        background: rgba(96,165,250,0.12);
+        box-shadow: 0 0 8px rgba(96,165,250,0.25);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--fg);
+        letter-spacing: .5px;
+        transform: translate(-50%, -50%);
+    }
+    .marker > span { display: none; } /* hide old long labels */
+    .marker .dot  { display: none; }  /* hide the old small dot */
+    .marker { position:absolute; left:50%; top:50%; width:0; height:0; transform-origin: center; }
+
+    .banner { grid-area: footer; display: flex; align-items: center; gap: 10px; background: rgba(19,41,33,0.6); border: 1px solid rgba(52,211,153,0.35); padding: 10px 12px; border-radius: 12px; }
+    .banner strong { color: #a7f3d0; }
+    footer { grid-area: footer; display: grid; gap: 8px; }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip { font-size: 12px; padding: 4px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); }
+
+    .edgeLabel {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform-origin: center center;
+        font-size: 12px;
+        color: var(--muted);
+    }
+    .edgeLabel > span {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid var(--border);
+        backdrop-filter: blur(2px);
+    }
+    .edgeCardinal > span {
+        color: var(--fg);
+        font-weight: 700;
+        border-color: rgba(96,165,250,0.45);
+    }
+
+
+    @media (max-width: 920px) {
+      body { grid-template-columns: 1fr; grid-template-areas:
+        "header"
+        "main"
+        "aside"
+        "footer"; }
+      aside { order: 3; }
+      .list { max-height: 30vh; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>📍 Compass</h1>
+    <span class="pill" id="status">Waiting for location…</span>
+    <span class="pill" id="headingPill">Heading —</span>
+    <div class="chips">
+      <span class="chip" id="latlon">—</span>
+    </div>
+  </header>
+
+  <aside>
+    <div class="section">
+      <h2>Add location</h2>
+      <label for="name">Name</label>
+      <input id="name" type="text" placeholder="E.g., Home, Office, Trailhead" />
+      <label for="abbr">Abbreviation (3 letters, optional)</label>
+      <input id="abbr" type="text" maxlength="3" placeholder="e.g., YOS" />
+      <label for="addr">Address or lat,lng</label>
+      <input id="addr" type="text" placeholder="E.g., 1600 Amphitheatre Pkwy, Mountain View or 33.4255,-111.94" />
+      <div class="row">
+        <button id="btnAdd">Add</button>
+        <button id="btnUseHere" title="Add current GPS position">Add: here</button>
+      </div>
+      <small class="meta">Tip: You can paste coordinates as "lat,lng" without geocoding.</small>
+    </div>
+
+    <div class="section">
+      <h2>Saved locations</h2>
+      <div id="list" class="list"></div>
+    </div>
+
+    <div class="section">
+      <h2>Sensors</h2>
+      <div class="row">
+        <button id="btnEnableOrientation">Enable compass</button>
+        <button id="btnCalibrate">Calibrate North</button>
+      </div>
+      <small class="meta">On iOS, tap <em>Enable compass</em> to grant motion permissions. Calibrate aligns the displayed North with what you see.</small>
+    </div>
+  </aside>
+
+  <main>
+    <div class="compass-wrap">
+      <div class="compass" id="compass"></div>
+      <div class="ticks" id="ticks"></div>
+      <div class="north" id="north" style="transform: translate(-50%,-100%) rotate(0deg);"></div>
+      <div class="center-dot"></div>
+      <div id="markers"></div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="banner" id="banner" style="display:none">
+      <span>🎯 Target: <strong id="hitName"></strong></span>
+      <span>Distance: <strong id="hitDistance"></strong></span>
+      <span>Bearing: <strong id="hitBearing"></strong>°</span>
+    </div>
+  </footer>
+
+  <script>
+    // --- Utilities ---
+    const deg2rad = d => d * Math.PI / 180;
+    const rad2deg = r => r * 180 / Math.PI;
+    // Smallest absolute difference between two angles (0–360), in degrees
+    const angleDelta = (a, b) => Math.abs((((a - b) + 540) % 360) - 180);
+    const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+
+    function haversine(lat1, lon1, lat2, lon2) {
+      const R = 6371000; // meters
+      const dLat = deg2rad(lat2 - lat1);
+      const dLon = deg2rad(lon2 - lon1);
+      const a = Math.sin(dLat/2)**2 + Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.sin(dLon/2)**2;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c; // meters
+    }
+
+    function bearing(lat1, lon1, lat2, lon2) {
+      const y = Math.sin(deg2rad(lon2 - lon1)) * Math.cos(deg2rad(lat2));
+      const x = Math.cos(deg2rad(lat1)) * Math.sin(deg2rad(lat2)) -
+                Math.sin(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.cos(deg2rad(lon2 - lon1));
+      const brng = rad2deg(Math.atan2(y, x));
+      return (brng + 360) % 360; // 0..360° from North
+    }
+
+    function fmtDistance(m) {
+      if (m < 1000) return `${m.toFixed(0)} m`;
+      const km = m / 1000;
+      return km < 10 ? `${km.toFixed(2)} km` : `${km.toFixed(1)} km`;
+    }
+
+    // --- State ---
+    const state = {
+      pos: { lat: null, lng: null },
+      heading: 0, // 0..360
+      northOffset: 0, // manual calibration in degrees
+      locations: /** @type {Array<{id:string,name:string,lat:number,lng:number,selected:boolean,address?:string}>} */([])
+    };
+
+    // Load from localStorage
+    function load() {
+      try { state.locations = JSON.parse(localStorage.getItem('savedLocations')||'[]'); } catch { state.locations = []; }
+      renderList();
+    }
+    function persist() {
+      localStorage.setItem('savedLocations', JSON.stringify(state.locations));
+    }
+
+    // --- DOM refs ---
+    const statusEl = document.getElementById('status');
+    const headingPill = document.getElementById('headingPill');
+    const latlon = document.getElementById('latlon');
+    const markersEl = document.getElementById('markers');
+    const listEl = document.getElementById('list');
+    const northEl = document.getElementById('north');
+    const ticksEl = document.getElementById('ticks');
+    const bannerEl = document.getElementById('banner');
+    const hitNameEl = document.getElementById('hitName');
+    const hitDistanceEl = document.getElementById('hitDistance');
+    const hitBearingEl = document.getElementById('hitBearing');
+
+    let R = 0;                         // current radius for label/marker placement
+    function measureRadius() {
+        // ticksEl is the inner circle (with the inset). Subtract a little padding
+        R = (ticksEl.clientWidth / 2) - 22;
+    }
+    function rebuild() {
+        buildTicks();         // re-draw ticks + labels using new R
+        updateMarkers();      // re-place tokens using new R
+    }
+
+    // Run once and on resize:
+    measureRadius();
+    new ResizeObserver(() => { measureRadius(); rebuild(); }).observe(ticksEl);
+
+    // Draw 360 tick marks + edge labels
+    function buildTicks(){
+        // Clear previous
+        ticksEl.innerHTML = "";
+
+        // Base tick marks every 5°
+        for (let i = 0; i < 360; i += 5) {
+            const d = document.createElement('div');
+            d.className = 'tick';
+            d.style.transform = `translate(-50%, -100%) rotate(${i}deg)`;
+            // (Optional) emphasize certain ticks:
+            if (i % 90 === 0) { d.style.width = '4px'; d.style.opacity = 1; d.style.background = '#7aa2ff'; }
+            else if (i % 45 === 0) { d.style.width = '3px'; d.style.opacity = 0.95; }
+            else if (i % 30 === 0) { d.style.width = '3px'; d.style.opacity = 0.9; }
+            else if (i % 15 === 0) { d.style.opacity = 0.75; }
+            else { d.style.opacity = 0.45; }
+            ticksEl.appendChild(d);
+        }
+
+        // Degree labels on the perimeter
+        const degreeLabels = [0,30,60,90,120,150,180,210,240,270,300,330];
+        for (const ang of degreeLabels) {
+            const lbl = document.createElement('div');
+            lbl.className = 'edgeLabel';
+            // center -> rotate -> translate outwards by current R
+            lbl.style.transform = `translate(-50%, -50%) rotate(${ang}deg) translate(0, ${-R}px)`;
+            const span = document.createElement('span');
+            span.textContent = `${ang}`;
+            // keep text upright
+            span.style.transform = `rotate(${-ang}deg)`;
+            lbl.appendChild(span);
+            ticksEl.appendChild(lbl);
+        }
+
+        // N, E, S, W on the perimeter
+        const cardinals = [{a:0,t:'N'},{a:90,t:'E'},{a:180,t:'S'},{a:270,t:'W'}];
+        for (const {a,t} of cardinals) {
+            const c = document.createElement('div');
+            c.className = 'edgeLabel edgeCardinal';
+            c.style.transform = `translate(-50%, -50%) rotate(${a}deg) translate(0, ${-R}px)`;
+            const span = document.createElement('span');
+            span.textContent = t;
+            span.style.transform = `rotate(${-a}deg)`;
+            c.appendChild(span);
+            ticksEl.appendChild(c);
+        }
+    }
+
+    // initial build
+    buildTicks();
+
+
+
+    // --- Geolocation ---
+    function watchPosition(){
+      if (!('geolocation' in navigator)) {
+        statusEl.textContent = 'Geolocation not available';
+        return;
+      }
+      navigator.geolocation.watchPosition((pos)=>{
+        state.pos.lat = pos.coords.latitude;
+        state.pos.lng = pos.coords.longitude;
+        latlon.textContent = `${state.pos.lat.toFixed(5)}, ${state.pos.lng.toFixed(5)}`;
+        statusEl.textContent = 'GPS: OK';
+        updateMarkers();
+      }, (err)=>{
+        statusEl.textContent = `GPS error: ${err.code}`;
+      }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 });
+    }
+
+    // --- Orientation ---
+    async function enableOrientation(){
+      try {
+        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+          const perm = await DeviceOrientationEvent.requestPermission();
+          if (perm !== 'granted') throw new Error('Permission denied');
+        }
+      } catch (e) {
+        // Non-iOS or already allowed
+      }
+      window.addEventListener('deviceorientationabsolute', onOrient, true);
+      window.addEventListener('deviceorientation', onOrient, true);
+    }
+
+    function onOrient(ev){
+      // Prefer absolute alpha (0..360 from true north). Fallback to alpha.
+      const a = (ev.absolute && typeof ev.alpha === 'number') ? ev.alpha : (typeof ev.alpha === 'number' ? ev.alpha : null);
+      if (a == null) return;
+      // Convert to compass heading (0=N, clockwise) and apply manual offset
+      // On many devices, alpha=0 is pointing at East vs North depending on coord frame.
+      // We provide manual calibration; default assumption maps alpha to compass directly.
+      const heading = (360 - a + state.northOffset + 360) % 360; // invert to match UI rotation
+      state.heading = heading;
+      headingPill.textContent = `Heading ${heading.toFixed(0)}°`;
+      northEl.style.transform = `translate(-50%,-100%) rotate(${heading}deg)`;
+      updateMarkers();
+    }
+
+    function calibrateNorth(){
+    //   // When user faces true north IRL, call this to set current displayed heading to 0
+    //   state.northOffset = (state.northOffset + state.heading) % 360;
+    //   state.heading = 0;
+    //   headingPill.textContent = `Heading 0°`;
+    //   northEl.style.transform = `translate(-50%,-100%) rotate(0deg)`;
+    //   updateMarkers();
+        // Shift the offset so the current facing becomes the new zero,
+        // but DO NOT overwrite state.heading or snap the needle to 0.
+        state.northOffset = (state.northOffset + state.heading) % 360;
+
+        // Keep the needle where it is; just refresh UI
+        headingPill.textContent = `Heading ${state.heading.toFixed(0)}°`;
+        northEl.style.transform = `translate(-50%,-100%) rotate(${state.heading}deg)`;
+        updateMarkers();
+    }
+
+    // --- Locations CRUD ---
+    function uid(){ return Math.random().toString(36).slice(2,9); }
+
+    function sanitizeAbbr(s) {
+        return (s || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 3);
+    }
+    function makeAbbr(name) {
+        const n = (name || '').trim();
+        if (!n) return '•';
+        const parts = n.split(/\s+/).filter(Boolean);
+        if (parts.length >= 2) {
+            const a = (parts[0][0] || '').toUpperCase();
+            const b = (parts[1][0] || '').toUpperCase();
+            const c = (parts[2]?.[0] || parts[1]?.[1] || parts[0]?.[1] || '').toUpperCase();
+            return sanitizeAbbr(a + b + (c || ''));
+        }
+        return sanitizeAbbr(n.replace(/[^A-Za-z0-9]/g, '').slice(0, 3));
+    }
+
+    async function geocode(q){
+      // Accept plain "lat,lng"
+      const m = q.trim().match(/^(-?\d+(?:\.\d+)?)[ ,]+(-?\d+(?:\.\d+)?)$/);
+      if (m) return { lat: parseFloat(m[1]), lng: parseFloat(m[2]), address: `${parseFloat(m[1]).toFixed(5)}, ${parseFloat(m[2]).toFixed(5)}` };
+
+      // Free OSM Nominatim (subject to usage limits). Swap with your own geocoder in prod.
+      const url = new URL('https://nominatim.openstreetmap.org/search');
+      url.searchParams.set('q', q);
+      url.searchParams.set('format', 'json');
+      url.searchParams.set('limit', '1');
+      const res = await fetch(url.toString(), { headers: { 'Accept': 'application/json' } });
+      if (!res.ok) throw new Error('Geocoding error');
+      const data = await res.json();
+      if (!data.length) throw new Error('No match found');
+      const { lat, lon, display_name } = data[0];
+      return { lat: parseFloat(lat), lng: parseFloat(lon), address: display_name };
+    }
+
+    function renderList(){
+      listEl.innerHTML = '';
+      if (!state.locations.length) {
+        const empty = document.createElement('div');
+        empty.className = 'meta';
+        empty.textContent = 'No saved locations yet.';
+        listEl.appendChild(empty);
+        updateMarkers();
+        return;
+      }
+      state.locations.forEach(loc => {
+        const row = document.createElement('div');
+        row.className = 'item';
+        const left = document.createElement('div');
+        const title = document.createElement('div');
+        title.textContent = loc.name;
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        meta.textContent = loc.address || `${loc.lat.toFixed(5)}, ${loc.lng.toFixed(5)}`;
+        left.appendChild(title); left.appendChild(meta);
+
+        const right = document.createElement('div');
+        right.style.display = 'flex'; right.style.gap = '6px';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox'; cb.checked = !!loc.selected; cb.title = 'Show on compass';
+        cb.addEventListener('change', ()=>{ loc.selected = cb.checked; persist(); updateMarkers(); });
+        const del = document.createElement('button'); del.textContent = '✕'; del.title = 'Delete';
+        del.addEventListener('click', ()=>{ state.locations = state.locations.filter(x=>x.id!==loc.id); persist(); renderList(); });
+        right.appendChild(cb); right.appendChild(del);
+
+        row.appendChild(left); row.appendChild(right);
+        listEl.appendChild(row);
+      });
+      updateMarkers();
+    }
+
+    function renderMarkers(bearings){
+      markersEl.innerHTML = '';
+      const container = document.getElementById('markers');
+      Object.entries(bearings).forEach(([id, info]) => {
+        const el = document.createElement('div');
+        el.className = 'marker';
+        el.style.transform = `translate(-50%, -50%) rotate(${info.relative.toFixed(2)}deg) translate(0, ${-(R - 10)}px)`;
+        const token = document.createElement('div');
+        token.className = 'token';
+        token.textContent = info.abbr || (info.name ? info.name.slice(0,3).toUpperCase() : '');
+        el.appendChild(token);
+        container.appendChild(el);
+      });
+    }
+
+    function updateMarkers(){
+        if (state.pos.lat == null || state.pos.lng == null) return;
+
+        const bearings = {};
+        let bestHit = null;
+        const threshold = 6; // degrees; adjust 4–10 to taste
+
+        for (const loc of state.locations.filter(x => x.selected)) {
+            // Bearing from you to the location (0..360 from North)
+            const b = bearing(state.pos.lat, state.pos.lng, loc.lat, loc.lng);
+
+            // Angle relative to the red needle (state.heading)
+            // 0° means the needle is pointing directly at the target.
+            const rel = (b - state.heading + 360) % 360;
+
+            // Shortest angular error to the needle direction
+            const err = Math.min(rel, 360 - rel);
+
+            const dist = haversine(state.pos.lat, state.pos.lng, loc.lat, loc.lng);
+
+            // store for drawing tokens
+            bearings[loc.id] = { name: loc.name, abbr: loc.abbr, absolute: b, relative: rel, dist };
+
+            // pick the marker under the needle
+            if (err <= threshold) {
+            if (!bestHit || err < bestHit.err || (err === bestHit.err && dist < bestHit.dist)) {
+                bestHit = { id: loc.id, name: loc.name, abbr: loc.abbr, absolute: b, relative: rel, dist, err };
+            }
+            }
+        }
+
+        renderMarkers(bearings);
+
+        if (bestHit) {
+            bannerEl.style.display = '';
+            hitNameEl.textContent = bestHit.name;
+            hitDistanceEl.textContent = fmtDistance(bestHit.dist);
+            hitBearingEl.textContent = bestHit.absolute.toFixed(0);
+        } else {
+            bannerEl.style.display = 'none';
+        }
+    }
+
+
+
+
+    // --- Wire up UI ---
+    document.getElementById('btnAdd').addEventListener('click', async ()=>{
+      const name = document.getElementById('name').value.trim() || 'Untitled';
+      const addr = document.getElementById('addr').value.trim();
+      const abbrInput = (document.getElementById('abbr')?.value || '').trim();
+      const abbr = sanitizeAbbr(abbrInput) || makeAbbr(name);
+      if (!addr) { alert('Enter an address or coordinates'); return; }
+      try {
+        const { lat, lng, address } = await geocode(addr);
+        state.locations.push({ id: uid(), name, abbr, lat, lng, selected: true, address });
+        persist(); renderList(); document.getElementById('name').value=''; document.getElementById('addr').value='';
+        const abbrEl = document.getElementById('abbr'); if (abbrEl) abbrEl.value = '';
+      } catch (e) {
+        alert(e.message || 'Failed to add location');
+      }
+    });
+
+    document.getElementById('btnUseHere').addEventListener('click', ()=>{
+      if (state.pos.lat==null) { alert('Current GPS not available yet'); return; }
+      const name = document.getElementById('name').value.trim() || 'Here';
+      const abbr2 = makeAbbr(name);
+      state.locations.push({ id: uid(), name, abbr: abbr2, lat: state.pos.lat, lng: state.pos.lng, selected: true, address: 'Current location (saved snapshot)' });
+      persist(); renderList(); document.getElementById('name').value='';
+    });
+
+    document.getElementById('btnEnableOrientation').addEventListener('click', enableOrientation);
+    document.getElementById('btnCalibrate').addEventListener('click', calibrateNorth);
+
+    // Init
+    load();
+    watchPosition();
+  </script>
+</body>
+</html>
