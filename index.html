@@ -398,7 +398,7 @@
       const heading = (360 - a + state.northOffset + 360) % 360; // invert to match UI rotation
       state.heading = heading;
       headingPill.textContent = `Heading ${heading.toFixed(0)}°`;
-      const faceRot = (-heading + 360) % 360;
+      const faceRot = (heading + 360) % 360;
       document.getElementById('compass').style.transform = `rotate(${faceRot}deg)`;
       document.getElementById('ticks').style.transform   = `rotate(${faceRot}deg)`;
       document.getElementById('markers').style.transform = `rotate(${faceRot}deg)`;
