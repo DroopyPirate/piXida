@@ -388,22 +388,34 @@
       window.addEventListener('deviceorientation', onOrient, true);
     }
 
-    function onOrient(ev){
-      // Prefer absolute alpha (0..360 from true north). Fallback to alpha.
-      const a = (ev.absolute && typeof ev.alpha === 'number') ? ev.alpha : (typeof ev.alpha === 'number' ? ev.alpha : null);
+    function onOrient(ev) {
+      let a = ev.alpha;
       if (a == null) return;
-      // Convert to compass heading (0=N, clockwise) and apply manual offset
-      // On many devices, alpha=0 is pointing at East vs North depending on coord frame.
-      // We provide manual calibration; default assumption maps alpha to compass directly.
-      const heading = (360 - a + state.northOffset + 360) % 360; // invert to match UI rotation
+
+      // Prefer absolute compass heading if provided
+      if (typeof ev.webkitCompassHeading === "number") {
+        a = ev.webkitCompassHeading; // iOS Safari gives heading relative to true North
+      } else if (ev.absolute && typeof ev.alpha === "number") {
+        a = 360 - ev.alpha; // Chrome/Android: alpha=0 at North, rotate clockwise
+      } else {
+        a = 360 - ev.alpha; // fallback
+      }
+
+      // Normalize to [0,360)
+      const heading = (a + 360) % 360;
       state.heading = heading;
+
       headingPill.textContent = `Heading ${heading.toFixed(0)}°`;
-      const faceRot = (heading + 360) % 360;
+
+      // Rotate compass and labels in opposite direction so that the red line always points where the phone faces
+      const faceRot = (-heading + 360) % 360;
       document.getElementById('compass').style.transform = `rotate(${faceRot}deg)`;
       document.getElementById('ticks').style.transform   = `rotate(${faceRot}deg)`;
       document.getElementById('markers').style.transform = `rotate(${faceRot}deg)`;
+
       updateMarkers();
     }
+
 
     function calibrateNorth(){
       state.northOffset = (state.northOffset + state.heading) % 360;
@@ -430,23 +442,38 @@
         return sanitizeAbbr(n.replace(/[^A-Za-z0-9]/g, '').slice(0, 3));
     }
 
-    async function geocode(q){
+    async function geocode(q) {
       // Accept plain "lat,lng"
       const m = q.trim().match(/^(-?\d+(?:\.\d+)?)[ ,]+(-?\d+(?:\.\d+)?)$/);
-      if (m) return { lat: parseFloat(m[1]), lng: parseFloat(m[2]), address: `${parseFloat(m[1]).toFixed(5)}, ${parseFloat(m[2]).toFixed(5)}` };
+      if (m) {
+        return {
+          lat: parseFloat(m[1]),
+          lng: parseFloat(m[2]),
+          address: `${parseFloat(m[1]).toFixed(5)}, ${parseFloat(m[2]).toFixed(5)}`
+        };
+      }
 
-      // Free OSM Nominatim (subject to usage limits). Swap with your own geocoder in prod.
-      const url = new URL('https://nominatim.openstreetmap.org/search');
+      // --- OpenCage Data API ---
+      const key = 'ef3c2d2311944fc992e6ecd7502abf9b'; // 🔒 Replace with your key from https://opencagedata.com/api
+      const url = new URL('https://api.opencagedata.com/geocode/v1/json');
       url.searchParams.set('q', q);
-      url.searchParams.set('format', 'json');
+      url.searchParams.set('key', key);
       url.searchParams.set('limit', '1');
+
       const res = await fetch(url.toString(), { headers: { 'Accept': 'application/json' } });
-      if (!res.ok) throw new Error('Geocoding error');
+      if (!res.ok) {
+        throw new Error(`Geocoding error: ${res.status}`);
+      }
+
       const data = await res.json();
-      if (!data.length) throw new Error('No match found');
-      const { lat, lon, display_name } = data[0];
-      return { lat: parseFloat(lat), lng: parseFloat(lon), address: display_name };
+      if (!data.results?.length) {
+        throw new Error('No match found');
+      }
+
+      const { geometry, formatted } = data.results[0];
+      return { lat: geometry.lat, lng: geometry.lng, address: formatted };
     }
+
 
     function renderList(){
       listEl.innerHTML = '';
