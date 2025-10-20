@@ -71,6 +71,17 @@
 
     .north { position: absolute; left: 50%; top: 50%; width: 4px; height: calc(50% - 20px); background: linear-gradient(#ef4444, #7f1d1d); transform-origin: bottom center; border-radius: 2px; box-shadow: 0 0 12px rgba(239,68,68,0.5); }
     .center-dot { position: absolute; left: 50%; top: 50%; width: 16px; height: 16px; transform: translate(-50%,-50%); border-radius: 50%; background: #e5e7eb; box-shadow: 0 0 30px rgba(255,255,255,0.25); }
+    .reference-line {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 2px;
+      height: calc(50% - 20px);
+      background: rgba(255,255,255,0.6);
+      transform: translate(-50%, -100%);
+      z-index: 2;
+    }
+
 
     /* Token: 3-letter dot badge */
     .token {
@@ -124,6 +135,19 @@
         font-weight: 700;
         border-color: rgba(96,165,250,0.45);
     }
+
+    #markers {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      transform-origin: 50% 50%;
+      pointer-events: none; /* optional; keeps clicks off the dial */
+    }
+    .compass,
+    .ticks {
+      transform-origin: 50% 50%;
+    }
+
 
 
     @media (max-width: 920px) {
@@ -191,8 +215,8 @@
     <div class="compass-wrap">
       <div class="compass" id="compass"></div>
       <div class="ticks" id="ticks"></div>
-      <div class="north" id="north" style="transform: translate(-50%,-100%) rotate(0deg);"></div>
       <div class="center-dot"></div>
+      <div class="reference-line"></div>
       <div id="markers"></div>
     </div>
   </main>
@@ -374,25 +398,17 @@
       const heading = (360 - a + state.northOffset + 360) % 360; // invert to match UI rotation
       state.heading = heading;
       headingPill.textContent = `Heading ${heading.toFixed(0)}°`;
-      northEl.style.transform = `translate(-50%,-100%) rotate(${heading}deg)`;
+      const faceRot = (-heading + 360) % 360;
+      document.getElementById('compass').style.transform = `rotate(${faceRot}deg)`;
+      document.getElementById('ticks').style.transform   = `rotate(${faceRot}deg)`;
+      document.getElementById('markers').style.transform = `rotate(${faceRot}deg)`;
       updateMarkers();
     }
 
     function calibrateNorth(){
-    //   // When user faces true north IRL, call this to set current displayed heading to 0
-    //   state.northOffset = (state.northOffset + state.heading) % 360;
-    //   state.heading = 0;
-    //   headingPill.textContent = `Heading 0°`;
-    //   northEl.style.transform = `translate(-50%,-100%) rotate(0deg)`;
-    //   updateMarkers();
-        // Shift the offset so the current facing becomes the new zero,
-        // but DO NOT overwrite state.heading or snap the needle to 0.
-        state.northOffset = (state.northOffset + state.heading) % 360;
-
-        // Keep the needle where it is; just refresh UI
-        headingPill.textContent = `Heading ${state.heading.toFixed(0)}°`;
-        northEl.style.transform = `translate(-50%,-100%) rotate(${state.heading}deg)`;
-        updateMarkers();
+      state.northOffset = (state.northOffset + state.heading) % 360;
+      headingPill.textContent = `Heading ${state.heading.toFixed(0)}°`;
+      updateMarkers();
     }
 
     // --- Locations CRUD ---
@@ -474,7 +490,7 @@
       Object.entries(bearings).forEach(([id, info]) => {
         const el = document.createElement('div');
         el.className = 'marker';
-        el.style.transform = `translate(-50%, -50%) rotate(${info.relative.toFixed(2)}deg) translate(0, ${-(R - 10)}px)`;
+        el.style.transform = `translate(-50%, -50%) rotate(${info.absolute.toFixed(2)}deg) translate(0, ${-(R - 10)}px)`;
         const token = document.createElement('div');
         token.className = 'token';
         token.textContent = info.abbr || (info.name ? info.name.slice(0,3).toUpperCase() : '');
@@ -486,6 +502,7 @@
     function updateMarkers(){
         if (state.pos.lat == null || state.pos.lng == null) return;
 
+        const headingNow = state.heading;
         const bearings = {};
         let bestHit = null;
         const threshold = 6; // degrees; adjust 4–10 to taste
@@ -499,7 +516,7 @@
             const rel = (b - state.heading + 360) % 360;
 
             // Shortest angular error to the needle direction
-            const err = Math.min(rel, 360 - rel);
+            const err = angleDelta(b, headingNow);
 
             const dist = haversine(state.pos.lat, state.pos.lng, loc.lat, loc.lng);
 
