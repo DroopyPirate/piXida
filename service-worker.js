@@ -35,6 +35,7 @@ The service worker completes its installation.
 */
 
 // Activate: remove old caches and take control immediately
+// Changing cache names will trigger this activate event
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
